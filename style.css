@@ -1,0 +1,15 @@
+body {
+    background-color: #43423f;
+    overflow-y: hidden;
+    text-align: center;
+}
+
+.game{
+    width: 640px;
+    height: 720px;
+    margin: auto;
+}
+
+canvas{
+    position: relative;
+}
