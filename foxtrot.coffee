@@ -74,8 +74,8 @@ class World
   viewWidth: 640
   viewHeight: 720
   endgame: false
-  worldX = -80
-  worldY = 5500
+  worldX: -80#(@width - @viewWidth)/2
+  worldY: 5500
   sprites: []
   springs: []
   particles: []
@@ -92,8 +92,8 @@ class World
     @sprites.push(new Grass(this))
 
   # Get the Canvas Coordinates from world coordinates
-  getCX: (wx) -> return wx - worldX
-  getCY: (wy) -> return wy - worldY
+  getCX: (wx) -> return wx - @worldX
+  getCY: (wy) -> return wy - @worldY
 
   makeplatforms: (num) ->
     plat = new Platform(this, 6100 - 2 * num * num, 105 - num/2)
@@ -102,8 +102,8 @@ class World
     @sprites.push(plat)
 
   # Adjust Camera
-  adjustWX: (dx) -> worldX += dx
-  adjustWY: (dy) -> worldY += dy
+  adjustWX: (dx) -> @worldX += dx
+  adjustWY: (dy) -> @worldY += dy
 
   # Create an HTML5 canvas element and append it to the document
   createCanvas: ->
