@@ -7,13 +7,12 @@ window.requestAnimFrame = (->
   window.requestAnimationFrame or window.webkitRequestAnimationFrame or window.mozRequestAnimationFrame or window.oRequestAnimationFrame or window.msRequestAnimationFrame or (callback, element) ->
     window.setTimeout callback, 1000 / 60
 )()
-
 # Create a new instance of the game and get it running.
 
 $ -> 
   game = new Game
   game.run()
-
+  
 # ## Game
 # The game class handles top level game loop and initialisation.
 class Game
@@ -32,10 +31,12 @@ class Game
       if(!@world.endgame)
         @main()
       else
-        @world.ctx.fillStyle = "rgb(241, 241, 242)"
+        @world.ctx.fillStyle = "#fff"
         @world.ctx.font = "Bold 40px Calibri"
-        @world.ctx.fillText("You got all splatted on", 10, 500)
-        @world.ctx.fillText("the Hard Ground little Fox!", 20, 550)
+        @world.ctx.fillText("You Jumped #{@world.getMaxHeight()} cm!", 150, 670)
+        @world.ctx.fillStyle = "rgb(241, 241, 242)"
+        @world.ctx.fillText("You got all splatted on", 75, 500)
+        @world.ctx.fillText("the Hard Ground little Fox!", 85, 550)
         @world.ctx.font = "Bold 15px Calibri"
         @world.ctx.fillText("(refresh?)", 300, 600)
       requestAnimFrame(@animate)
@@ -77,16 +78,19 @@ class World
   worldX: -80#(@width - @viewWidth)/2
   worldY: 5500
   sprites: []
+  plats: []
   springs: []
   particles: []
+  lastPlatY: 5200
   renderParticles: false
   particleColor: "#2af"
+  debugText: ""
 
   # When the world is created it adds a canvas to the page and
   # inserts all the sprites that are needed into the sprite array.
   constructor: ->
     @ctx = @createCanvas()
-    @makeplatforms num for num in [100..10]
+    @makefirstplatforms num for num in [6..0]
     @player = new Player(this)
     @sprites.push(@player)
     @sprites.push(new Grass(this))
@@ -95,11 +99,26 @@ class World
   getCX: (wx) -> return wx - @worldX
   getCY: (wy) -> return wy - @worldY
 
-  makeplatforms: (num) ->
-    plat = new Platform(this, 6100 - 2 * num * num, 105 - num/2)
-    if Math.floor(Math.random()*18) is 1 and num > 40
+  makefirstplatforms: (num) ->
+    plat = new Platform(this, 5800 - 100 * num, 100)
+    @plats.push(plat)
+ 
+  createPlatform: ->
+    rand = 5 * Math.floor(Math.random()*33) #Between 0 and 32
+    plat = new Platform(this, @lastPlatY - 180 - rand, 100)
+    @lastPlatY -= 70 + rand
+    if Math.floor(Math.random()*18) is 1 and @worldY < 6000
       @springs.push(new Spring(plat))
-    @sprites.push(plat)
+    @plats.push(plat)
+
+  evalPlats: ->
+    newPlats = []
+    newPlats.push plat for plat in @plats when plat.isAlive
+    @plats = newPlats
+    @createPlatform()
+
+
+
 
   # Adjust Camera
   adjustWX: (dx) -> @worldX += dx
@@ -121,30 +140,32 @@ class World
     #PARTICLES
     @particleCreator() if @renderParticles
     #SPRITES
-    sprite.draw() for sprite in @sprites
+    plat.draw() for plat in @plats
     spring.draw() for spring in @springs
+    sprite.draw() for sprite in @sprites
     @player.foxtail.draw()
     #
     @ctx.fillStyle = "rgba(255, 255, 255, 0.5)"
     @ctx.fillRect(0,0,(@viewWidth-@width)/2,@viewHeight)
     @ctx.fillRect(@viewWidth-(@viewWidth-@width)/2,0,(@viewWidth-@width)/2,@viewHeight)
     @renderDebugOverlay(lastElapsed)
+    
   
   # Show the frames per second at the top of the view.
   renderDebugOverlay: (lastElapsed) ->
     @ctx.save()
     @ctx.fillStyle = "rgb(241, 241, 242)"
-    @ctx.font = "Bold 20px Monospace"
-    @ctx.fillText("Height #{Math.round((6000-@player.wy)/60)}", 10, 20)
-    @ctx.fillText("#{@width}", 10, 40)
+    @ctx.font = "Bold 24px Monospace"
+    @ctx.fillText("#{@getHeight()}cm", 90, 20)
+    @ctx.fillText("#{@debugText}", 90, 50)
     #@ctx.fillText("#{@particles.length}", 10, 50)
     @player.update(lastElapsed/20)
     @ctx.restore()
+  getMaxHeight: ->
+    Math.round((6000-@player.maxHeight)/60)
+  getHeight: ->
+    Math.round((6000-@player.wy)/60)
     
-
-  candie: ->
-    @player.candie=true
-  
   particleCreator: ->
     @ctx.fillStyle = @particleColor
     newParticles = []
@@ -176,20 +197,32 @@ class World
   reset: -> @resetCount++
 
   # Find the sprites that have collision detection enabled.
-  activePlats: -> sprite for sprite in @sprites when sprite.isplat and sprite.isActive
+  activePlats: -> plat for plat in @plats when plat.isActive
   activeSprings: -> spring for spring in @springs when spring.plat.isActive
 
 # ## InputHandler
 # Responsible for dealing with keyboard input.
 class InputHandler
   keysDown: {}
+  mousedown: false
+  clickX: 0
+  #orientation: 0
 
   # Listen for keys being presses and being released. As this happens
   # add and remove them from the key store.
   constructor: (@world) ->
     $("body").keydown (e) => @keysDown[e.keyCode] = true
     $("body").keyup (e)   => delete @keysDown[e.keyCode]
-  
+    $("body").bind 'mousedown', (event) =>
+      @clickX = event.offsetX
+      @mousedown = true
+    $("body").bind 'mouseup', (event) =>
+      @mousedown = false
+    #$(window).bind 'deviceorientation', (event) =>
+     # @clickX = event.offsetX
+     # @mousedown = true
+
+
   d: ->
     delete @keysDown[68]
     @world.debug()
@@ -199,13 +232,16 @@ class InputHandler
   update: (modifier) ->
     @world.left(modifier)  if 37 of @keysDown
     @world.right(modifier) if 39 of @keysDown
+    if @mousedown
+      @world.left(modifier) if @clickX < 80
+      @world.right(modifier) if @clickX > 560 and @clickX < 640
     @debug() if 68 of @keysDown
 
 # ## SpriteImage
 # Wraps sprite loading.
 class SpriteImage
   ready: false
-  url: "img/sheet.png"
+  url: "img/sheet2.png"
 
   # Create a new image based on the sprite file and set
   # ready to true when loaded.
@@ -250,8 +286,7 @@ class Grass
 
 class Platform extends Sprite
   constructor: (@world, y, w) ->
-    @isplat = true
-    @isdrawn = true
+    @isAlive = true
     @ismoving = y < 5000 and Math.floor(Math.random()*5) is 1
     @sh = 10
     @sw = w
@@ -260,24 +295,26 @@ class Platform extends Sprite
     @vx = if @ismoving then 4 else 0
     @typeplat = Math.floor(Math.random()*3)
     @sx = @typeplat*100 + (100 - @sw) /2
-    @sy = if @ismoving then 80 else 70
+    @sy = if @ismoving then 100 else 90
     super(@world)
   
   isActive: ->
-    return @isdrawn and @world.getCY(@wy) > -10
+    return @isAlive and @world.getCY(@wy) > -10
   
   jumpoff: ->
     @typeplat--
     @sx = @typeplat*100 + (100 - @sw) /2
     if @typeplat is -1
-      @isdrawn = false
-      @isplat = false
+      @isAlive = false
+      # Now we have declared our plat "dead"
+      @world.evalPlats()
 
   draw: ->
     if @world.getCY(@wy) > @world.viewHeight
-      @isdrawn=false
-      @world.candie()
-      @isplat=false
+      @isAlive = false
+      # Now we have declared our plat "dead"
+      @world.evalPlats()
+      return
     if @isActive()
       @drawImage()
       if @ismoving
@@ -317,7 +354,7 @@ class Spring extends Sprite
         @wy = @plat.wy - @sh
       @sx = if(@springDepressed) then 303 else 328
       @drawImage()
-    else if !@plat.isplat
+    else if !@plat.isAlive
       @springDepressed = false
   
 
@@ -327,6 +364,7 @@ class Spring extends Sprite
 class Player extends Sprite
   gravity: .6
   jumpHeight: 20
+  maxHeight: 0
   speed: 5
   airRes: .98
   frame: 0
@@ -337,13 +375,13 @@ class Player extends Sprite
 
   constructor: (@world) ->
     @sw = 50
-    @sh = 69
+    @sh = 90
     @wx = @world.width / 2 - @sw/2
     @wy = 5700
     @foxtail = new Foxtail(@world, this, @image)
     @isplat = false
-    @candie = false
     @name = "Player"
+    @maxHeight = @wy
     super (@world)
 
   jump: ->
@@ -362,20 +400,23 @@ class Player extends Sprite
     if @vy > 0
       @flying = false
       @jump() if @platCollision()
+    else
+      @maxHeight = @wy if @wy < @maxHeight
+      
     
     @spring() if @springCollision()
     #
 
     if @wy > @world.height - @sh and @vy > 0
-      if(!@candie)
+      if(@world.getMaxHeight() < 15)
         @jump()
       else
         @world.endgame = true
-      
-    #@vx = -@vx if  @wx + @vx < -120# or @wx + @vx + @sw > @world.viewWidth + @world.worldX or#@world.worldX
+    
     @wy += @vy * mod
     @wx += @vx * mod
     @vx *= @airRes
+
 
     # Camera Adjustment
     @world.adjustWY(@vy) if @world.getCY(@wy) > @world.viewHeight - 100 and @vy > 0 or @world.getCY(@wy) < 300 and @vy < 0
@@ -388,7 +429,7 @@ class Player extends Sprite
     @frame = 1 if @vx < -2
     @frame = 0 if @vx < -6
     @sx = @sw * @frame
-    @sy = if @vy < 0 then 0 else 91
+    @sy = if @vy < 0 then 0 else 110
     @drawImage()
     
   cy: -> @world.getCY(@wy)
@@ -396,12 +437,12 @@ class Player extends Sprite
   
   platCollision: ->
     for o in @world.activePlats()
-      if (@wy+50) > o.wy - 20 and (@wy+50) < o.wy + o.sh and @wx > o.wx - @sw and @wx < o.wx + o.sw
+      if (@wy+70) > o.wy - 10 and (@wy+70) < o.wy + o.sh and @wx > o.wx - @sw and @wx < o.wx + o.sw
         o.jumpoff()
         return true
   springCollision: ->
     for o in @world.activeSprings() when o.springDepressed
-      if (@wy+50) > o.wy - 20 and (@wy+50) < o.wy + o.sh and @wx > o.wx - @sw and @wx < o.wx + o.sw
+      if (@wy+70) > o.wy - 10 and (@wy+70) < o.wy + o.sh and @wx > o.wx - @sw and @wx < o.wx + o.sw
         o.jumpoff()
         return true
     
@@ -418,10 +459,10 @@ class Player extends Sprite
     @vx = 8 if @vx > 8
 
 class Foxtail
-  sx: 275 - 11 # Source x position
-  sy: 8 # Source y position
-  sw: 22 # Source width
-  sh: 60 # Source height
+  sx: 275 - 15 # Source x position
+  sy: 5 # Source y position
+  sw: 30 # Source width
+  sh: 70 # Source height
     
   constructor: (@world, @player, @image) ->
 
@@ -429,10 +470,10 @@ class Foxtail
     angle = Math.atan2(@player.vx,-@player.vy)
     @world.ctx.translate(@player.cx() + @player.sw / 2,@player.cy() + @player.sh / 2 + 16)
     @world.ctx.rotate(angle)
-    @world.ctx.translate(-11,0)
+    @world.ctx.translate(-15,0)
     # #Draw Image
     @world.ctx.drawImage(@image.image, @sx, @sy, @sw, @sh, 0, 0, @sw, @sh)
     # #Reset
-    @world.ctx.translate(11,0)
+    @world.ctx.translate(15,0)
     @world.ctx.rotate(-angle)
     @world.ctx.translate(-@player.cx() - @player.sw / 2,-@player.cy() - @player.sh / 2 - 16)
