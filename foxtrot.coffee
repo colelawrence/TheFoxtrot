@@ -206,21 +206,23 @@ class InputHandler
   keysDown: {}
   mousedown: false
   clickX: 0
-  #orientation: 0
+  orientationX: 0 #[-1, 1] right to left
+  useOrientation: true
 
   # Listen for keys being presses and being released. As this happens
   # add and remove them from the key store.
   constructor: (@world) ->
     $("body").keydown (e) => @keysDown[e.keyCode] = true
     $("body").keyup (e)   => delete @keysDown[e.keyCode]
-    $("body").bind 'mousedown', (event) =>
-      @clickX = event.offsetX
-      @mousedown = true
-    $("body").bind 'mouseup', (event) =>
-      @mousedown = false
-    #$(window).bind 'deviceorientation', (event) =>
-     # @clickX = event.offsetX
-     # @mousedown = true
+    if @useOrientation
+      $(window).bind 'deviceorientation', (event) =>
+        @orientationX = event.gamma
+    else
+      $("body").bind 'mousedown', (event) =>
+        @clickX = event.offsetX
+        @mousedown = true
+      $("body").bind 'mouseup', (event) =>
+        @mousedown = false
 
 
   d: ->
@@ -232,9 +234,13 @@ class InputHandler
   update: (modifier) ->
     @world.left(modifier)  if 37 of @keysDown
     @world.right(modifier) if 39 of @keysDown
-    if @mousedown
-      @world.left(modifier) if @clickX < 80
-      @world.right(modifier) if @clickX > 560 and @clickX < 640
+    if @useOrientation
+      @world.left(modifier) if @orientationX > .2 #tilt left
+      @world.right(modifier) if @orientationX < -.2 #tilt right
+    else
+      if @mousedown
+        @world.left(modifier) if @clickX < 80
+        @world.right(modifier) if @clickX > 560 and @clickX < 640
     @debug() if 68 of @keysDown
 
 # ## SpriteImage
