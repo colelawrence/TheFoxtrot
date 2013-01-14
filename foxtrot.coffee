@@ -206,7 +206,7 @@ class InputHandler
   keysDown: {}
   mousedown: false
   clickX: 0
-  orientationX: 0 #[-1, 1] right to left
+  orientationX: 0 #[-1, 1] left to right
   useOrientation: true
 
   # Listen for keys being presses and being released. As this happens
@@ -235,8 +235,8 @@ class InputHandler
     @world.left(modifier)  if 37 of @keysDown
     @world.right(modifier) if 39 of @keysDown
     if @useOrientation
-      @world.left(modifier) if @orientationX > .2 #tilt left
-      @world.right(modifier) if @orientationX < -.2 #tilt right
+      @world.right(modifier) if @orientationX > .2 #tilt right
+      @world.left(modifier) if @orientationX < -.2 #tilt left
     else
       if @mousedown
         @world.left(modifier) if @clickX < 80
