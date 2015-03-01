@@ -45,6 +45,9 @@ Game = (function() {
         this.world.ctx.fillText("the Hard Ground little Fox!", 85, 550);
         this.world.ctx.font = "Bold 15px Calibri";
         this.world.ctx.fillText("(Enter refresh?)", 300, 600);
+        $("#game").click(function() {
+          return window.location.reload();
+        });
         return window.addEventListener("keydown", function(event) {
           if (event.which === 13) {
             return window.location.reload();

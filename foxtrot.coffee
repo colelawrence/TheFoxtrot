@@ -40,6 +40,8 @@ class Game
         @world.ctx.fillText("the Hard Ground little Fox!", 85, 550)
         @world.ctx.font = "Bold 15px Calibri"
         @world.ctx.fillText("(Enter refresh?)", 300, 600)
+        $("#game").click ->
+            window.location.reload()
         window.addEventListener "keydown", (event) ->
           if event.which == 13
             window.location.reload()
