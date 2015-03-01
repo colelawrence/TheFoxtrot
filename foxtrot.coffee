@@ -30,6 +30,7 @@ class Game
     if(@world)
       if(!@world.endgame)
         @main()
+        requestAnimFrame(@animate)
       else
         @world.ctx.fillStyle = "#fff"
         @world.ctx.font = "Bold 40px Calibri"
@@ -38,8 +39,10 @@ class Game
         @world.ctx.fillText("You got all splatted on", 75, 500)
         @world.ctx.fillText("the Hard Ground little Fox!", 85, 550)
         @world.ctx.font = "Bold 15px Calibri"
-        @world.ctx.fillText("(refresh?)", 300, 600)
-      requestAnimFrame(@animate)
+        @world.ctx.fillText("(Enter refresh?)", 300, 600)
+        window.addEventListener "keydown", (event) ->
+          if event.which == 13
+            window.location.reload()
     
   # Create a new game world and keyboard input handler
   setup: ->
@@ -116,9 +119,6 @@ class World
     newPlats.push plat for plat in @plats when plat.isAlive
     @plats = newPlats
     @createPlatform()
-
-
-
 
   # Adjust Camera
   adjustWX: (dx) -> @worldX += dx
@@ -212,8 +212,8 @@ class InputHandler
   # Listen for keys being presses and being released. As this happens
   # add and remove them from the key store.
   constructor: (@world) ->
-    $("body").keydown (e) => @keysDown[e.keyCode] = true
-    $("body").keyup (e)   => delete @keysDown[e.keyCode]
+    $(window).keydown (e) => @keysDown[e.keyCode] = true
+    $(window).keyup (e)   => delete @keysDown[e.keyCode]
     if @useOrientation
       $(window).bind 'deviceorientation', (event) =>
         @orientationX = event.gamma
