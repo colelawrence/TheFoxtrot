@@ -44,7 +44,7 @@ Game = (function() {
         this.world.ctx.fillText("You got all splatted on", 75, 500);
         this.world.ctx.fillText("the Hard Ground little Fox!", 85, 550);
         this.world.ctx.font = "Bold 15px Calibri";
-        this.world.ctx.fillText("(refresh?)", 300, 600);
+        this.world.ctx.fillText("(Enter refresh?)", 300, 600);
         return window.addEventListener("keydown", function(event) {
           if (event.which === 13) {
             return window.location.reload();
@@ -319,12 +319,12 @@ InputHandler = (function() {
 
   function InputHandler(world) {
     this.world = world;
-    $("body").keydown((function(_this) {
+    $(window).keydown((function(_this) {
       return function(e) {
         return _this.keysDown[e.keyCode] = true;
       };
     })(this));
-    $("body").keyup((function(_this) {
+    $(window).keyup((function(_this) {
       return function(e) {
         return delete _this.keysDown[e.keyCode];
       };
