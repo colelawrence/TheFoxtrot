@@ -366,10 +366,10 @@ InputHandler = (function() {
       this.world.right(modifier);
     }
     if (this.useOrientation) {
-      if (this.orientationX > .2) {
+      if (this.orientationX > 4) {
         this.world.right(modifier);
       }
-      if (this.orientationX < -.2) {
+      if (this.orientationX < -4) {
         this.world.left(modifier);
       }
     } else {
